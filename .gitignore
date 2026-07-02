@@ -1,0 +1,19 @@
+# Dependencies and logs
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment secrets
+.env
+.env.*.local
+
+# Build/Coverage/Cache
+dist/
+build/
+coverage/
+.nyc_output
+.cache/
+.eslintcache
+.vscode/
+.idea/
