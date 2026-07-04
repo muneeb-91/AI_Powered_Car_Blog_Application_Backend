@@ -14,7 +14,7 @@ const app = express();
 app.use(cookieParser());
 app.use(express.json());
 app.use(cors({
-  origin: "https://ai-powered-car-blog-application-fro.vercel.app/",
+  origin: "https://ai-powered-car-blog-application-fro.vercel.app",
   credentials: true
 }));
 
