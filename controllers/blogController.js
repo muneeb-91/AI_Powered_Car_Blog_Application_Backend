@@ -1,7 +1,7 @@
-import fs from 'fs';
 import cloudinary from "../config/cloudinary.js";
 import Blog from "../models/blogModel.js";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import streamifier from "streamifier";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -13,14 +13,19 @@ export const createBlog = async (req, res) => {
   if (!subTitle) throw "Title must be provided";
   if (!category) throw "Please select a category";
   if (!description) throw "Description must be provided";
-  if (description.length < 250) throw "Description should be at least 250 characters";
+  if (description.length < 250)
+    throw "Description should be at least 250 characters";
 
-  const result = await cloudinary.uploader.upload(req.file.path, {
-    folder: "blogs",
-  });
+  const result = await new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: "blogs" },
+      (error, result) => {
+        if (error) return reject(error);
+        resolve(result);
+      },
+    );
 
-  fs.unlink(req.file.path, (error) => {
-    if(error) console.log("Failed to delete local file"); 
+    streamifier.createReadStream(req.file.buffer).pipe(stream);
   });
 
   const blog = await Blog.create({
@@ -100,7 +105,8 @@ export const deleteBlog = async (req, res) => {
   const blog = await Blog.findById(id);
   if (!blog) throw "Blog not fount!";
 
-  if (blog.author.toString() !== req.user._id.toString()) throw "You are not authorized";
+  if (blog.author.toString() !== req.user._id.toString())
+    throw "You are not authorized";
 
   // extract the public id of the image from secure_url
   const imageUrl = blog.image;
@@ -144,7 +150,10 @@ export const getNewTechnologyBlogs = async (req, res) => {
   const blogs = await Blog.find({
     isPublished: true,
     category: "new_technology",
-  }).sort("-createdAt").limit(4).populate("author", "name");
+  })
+    .sort("-createdAt")
+    .limit(4)
+    .populate("author", "name");
 
   res.status(200).json({
     success: true,
@@ -154,7 +163,10 @@ export const getNewTechnologyBlogs = async (req, res) => {
 
 export const getBlogsByCategory = async (req, res) => {
   const { category } = req.params;
-  const blogs = await Blog.find({ isPublished: true, category: category }).populate("author", "name");
+  const blogs = await Blog.find({
+    isPublished: true,
+    category: category,
+  }).populate("author", "name");
 
   res.status(200).json({
     success: true,
@@ -164,11 +176,12 @@ export const getBlogsByCategory = async (req, res) => {
 
 export const generateContent = async (req, res) => {
   const { title, subTitle, category } = req.body;
-  if(!title) throw "Title is required to generate description";
-  if(title.length < 30) throw "Title should be at least 30 characters long";
-  if(!subTitle) throw "Sub Title is required to generate description";
-  if(subTitle.length < 30) throw "Sub Title should be at least 30 characters long";
-  if(!category) throw "Category is required to generate description";
+  if (!title) throw "Title is required to generate description";
+  if (title.length < 30) throw "Title should be at least 30 characters long";
+  if (!subTitle) throw "Sub Title is required to generate description";
+  if (subTitle.length < 30)
+    throw "Sub Title should be at least 30 characters long";
+  if (!category) throw "Category is required to generate description";
 
   const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
@@ -206,7 +219,7 @@ Now generate the HTML content.`;
   const description = result.response.text();
 
   res.json({
-        success: true, 
-        description
-    });
+    success: true,
+    description,
+  });
 };
