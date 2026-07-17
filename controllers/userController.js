@@ -6,6 +6,9 @@ export const register = async (req, res) => {
     const {name, email, password, confirm_password} = req.body;
 
     if(!name) throw 'Name is required';
+    if (!/^[A-Za-z\s]+$/.test(name.trim())) {
+        throw new Error("Name should contain only alphabets");
+    }
     if(!email) throw 'Email is required';
     if(!password) throw 'Password is required';
     if(password.length < 6) throw 'Password should be at least 6 characters';
